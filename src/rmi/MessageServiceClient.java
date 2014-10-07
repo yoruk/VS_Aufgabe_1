@@ -16,9 +16,14 @@ public class MessageServiceClient {
 
     public void testMethod() throws RemoteException {
         String clientID = "Eugen";
-        messageService.newMessage("Hallo Welt!", clientID);
-        String message = messageService.nextMessage(clientID);
-        System.out.println(message);
+        
+        for(int i = 0; i < 10; i++) {
+            messageService.newMessage("Hallo Welt!" + "[" + i + "]", clientID);
+        }
+        for(int i = 0; i < 10; i++) {
+            String message = messageService.nextMessage(clientID);
+            System.out.println(message);
+        }
     }
     
     public static void main(String[] args) {
