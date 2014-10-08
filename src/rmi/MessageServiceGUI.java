@@ -19,6 +19,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
@@ -39,6 +40,8 @@ public class MessageServiceGUI {
     private JPanel northPanel;          // Panel mit den Start-, Pause- und Exit-Buttons
     private JPanel southPanel;          // Panel mit der Voreinstellungen
     private JPanel centerPanel;         // Panel fuer die Anzeige der Renninformationen
+    private JTextField northText;
+    private JTextField southText;
 
     private JButton newMessageButton;    // Button zum Starten des Rennens
     private JButton nextMessageButton;   // Button zum Beenden des Programms
@@ -60,7 +63,7 @@ public class MessageServiceGUI {
         frame = new JFrame("RaceManager GUI Version");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setIconImage(frame.getToolkit().getImage("favicon.png"));
-        frame.setMinimumSize(new Dimension(640, 480));
+        frame.setMinimumSize(new Dimension(800, 600));
         frame.setResizable(false);
 
         /* Panels erstellen lassen*/
@@ -81,7 +84,12 @@ public class MessageServiceGUI {
         /* NORTH Panel initialisieren und mit Rahmen zeichnen */
         northPanel = new JPanel();
         northPanel.setBorder(BorderFactory.createEtchedBorder(1));
-
+        
+        // Textbox
+        northText = new JTextField(10);
+        northPanel.add(northText);
+        northText.setSize(300, 200);
+        
         /* Start-Button erzeugen*/
         newMessageButton = new JButton("New message");
         northPanel.add(newMessageButton);
@@ -136,6 +144,11 @@ public class MessageServiceGUI {
         /* SOUTH Panel initialisieren und Rahmen zeichnen */
         southPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         southPanel.setBorder(BorderFactory.createEtchedBorder(1));
+        
+        southText = new JTextField();
+        southPanel.add(southText);
+        southText.setSize((southPanel).getMaximumSize());
+        southText.setBorder(BorderFactory.createEtchedBorder(1));
 
 //        /* JSpinner samt Bezeichnung fuer die Anzahl der Wagen einfuegen */
 //        JPanel anzWagenPanel = new JPanel();
@@ -160,7 +173,7 @@ public class MessageServiceGUI {
 //        /* JSpinner samt Bezeichnung fuer die maximale Rundenzeit pro Auto einfuegen */
 //        JPanel rundenLaengePanel = new JPanel();
 //        rundenLaengePanel.setBorder(BorderFactory.createMatteBorder(2, 2, 2, 2, Color.BLUE));
-//        rundenLaengePanel.add(new JLabel("Länge einer Runde:"));        
+//        rundenLaengePanel.add(new JLabel("Lï¿½nge einer Runde:"));        
 //        selectMaxLapTime = new JSpinner(new SpinnerNumberModel(100,100,1000,100)); // Default und Min 100ms, Max 1000ms, 100ms Schritte
 //        rundenLaengePanel.add(selectMaxLapTime);
 //        rundenLaengePanel.setToolTipText("Bitte die max. Rundenzeit pro Auto zwischen 100 und 1000 Millisekunden eingeben");
@@ -194,45 +207,6 @@ public class MessageServiceGUI {
 
     } // createSouth()
 
-
-    private void createCenter() {
-
-        /* CENTER Panel initialisieren und Rahmen zeichnen */
-        centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        centerPanel.setBorder(BorderFactory.createEtchedBorder(1));
-
-//        JPanel carIDPanel       = new JPanel(new GridLayout(numberOfCars, 1, 0, 1));
-//        JPanel carProgressPanel = new JPanel(new GridLayout(numberOfCars, 1, 0, 3));
-//        JPanel carInfoPanel     = new JPanel(new GridLayout(numberOfCars, 1, 0, 1));
-//
-//        /* Wagennummer in das carIDPanel eintragen */
-//        for (int i = 0; i < numberOfCars; i++) {
-//            carIDPanel.add(new JLabel("Wagen " + (i + 1)));
-//        } // for
-//
-//        /* Erstelle JProgressbar-Array */
-//        progressBar = new JProgressBar[numberOfCars];
-//        for (int i = 0; i < numberOfCars; i++) {
-//            progressBar[i] = new JProgressBar(0, numberOfLaps);
-//            progressBar[i].setStringPainted(false); // Aktivieren der Prozentanzeige
-//            carProgressPanel.add(progressBar[i]);
-//        } // for
-//
-//        /* Erstelle carInfo-Array */
-//        carInfo = new JLabel[numberOfCars];
-//        for (int i = 0; i < numberOfCars; i++) {
-//            carInfo[i] = new JLabel();
-//            carInfoPanel.add(carInfo[i]);
-//        } // for
-//
-//        /* Panels und Progressbars dem centerPanel hinzufuegen */
-//        centerPanel.add(carIDPanel);
-//        centerPanel.add(carProgressPanel);
-//        centerPanel.add(carInfoPanel);
-
-        frame.getContentPane().add(centerPanel, BorderLayout.CENTER);
-
-    } // createCenter()
     
     public static void main(String[] args) {
         MessageServiceGUI gui = new MessageServiceGUI();

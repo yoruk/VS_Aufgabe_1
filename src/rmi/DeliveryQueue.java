@@ -3,7 +3,6 @@ package rmi;
 public class DeliveryQueue {
 
     private Message firstMessage;
-    private Message lastMessage;
     private final int maxSize;
     private int size;
             
@@ -11,21 +10,26 @@ public class DeliveryQueue {
         this.maxSize = maxSize;
         this.size = 0;  
         this.firstMessage = null;
-        this.lastMessage = null;
     }
     
     public void addMessage(Message message) {
-        if(firstMessage == null) {
+    	Message tempMessage = firstMessage;
+    	
+    	if(firstMessage == null) {
             firstMessage = message;
-            lastMessage = message;
             size++;
-        } else {
-            if(size == maxSize) {
-                firstMessage = firstMessage.getNextMessage();
-            } else if (size < maxSize) {
-                size++;
-            }            
-            lastMessage.setNextMessage(message);
+        } else {            
+        	while(tempMessage.getNextMessage() != null) {
+				tempMessage = tempMessage.getNextMessage();
+			}
+        	
+        	tempMessage.setNextMessage(message);
+            
+        	if(size == maxSize) {
+        		firstMessage = firstMessage.getNextMessage();
+        	} else {
+        		size++;
+        	}        	
         }
     }
     
@@ -48,4 +52,24 @@ public class DeliveryQueue {
         } // if
         return null;
     }
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		Message tempMessage = firstMessage;
+		
+		if(tempMessage != null) {
+			sb.append(tempMessage).append("\n");
+			
+			while(tempMessage.getNextMessage() != null) {
+				tempMessage = tempMessage.getNextMessage();
+				sb.append(tempMessage).append("\n");
+			}
+		
+		}
+		
+		return sb.toString();
+	}
+    
+    
 }

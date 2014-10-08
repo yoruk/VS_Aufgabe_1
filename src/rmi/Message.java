@@ -25,6 +25,7 @@ public class Message {
 
     public Message getMessage(String clientID) {
         Date tempDate = new Date();
+        
         if(!visited.containsKey(clientID)) {
             visited.put(clientID, tempDate);
             return this;
@@ -34,6 +35,7 @@ public class Message {
                return this;
             }
         }
+        
         return null;
     }
 
@@ -63,7 +65,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return messageIDCounter + " " + clientID + ": " + content + " " + date;
+        return messageID + " " + clientID + ": " + content + " " + date;
     }
 
 }
