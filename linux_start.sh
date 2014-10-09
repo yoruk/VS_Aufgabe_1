@@ -2,17 +2,16 @@
 
 killall rmiregistry
 
-PATH_PROJECT=/mnt/fileserver/MyHome/TI_Labor/Linux/eclipse44/VS_Aufgabe_1
-PATH_BIN=$PATH_PROJECT/bin
+PATH=/mnt/fileserver/MyHome/TI_Labor/Linux/eclipse44/VS_Aufgabe_1
 
 # 1. RMI Registry starten (Lokale Codebase deaktivieren):
 rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false &
 
 # 2. Server starten:
-java -cp $PATH_BIN \
+java -cp $PATH/bin \
      -Djava.rmi.server.useCodebaseOnly=false \
-     -Djava.rmi.server.codebase=file:$PATH_BIN/ \
-     -Djava.security.policy=$PATH_PROJECT/rmi.policy \
+     -Djava.rmi.server.codebase=file:$PATH/bin/ \
+     -Djava.security.policy=$PATH/rmi.policy \
      rmi.MessageServiceImpl
 
 
