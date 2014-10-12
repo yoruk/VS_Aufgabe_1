@@ -6,41 +6,41 @@ import java.util.HashMap;
 public class Message {
 
     private static int messageIDCounter = 0;
-    private String content;
-    private String clientID;
-    private Date date;
-    private int messageID;
     private Message nextMessage;
-    private HashMap<String,Date> visited;
+    private String message;
+    private String clientID;
+    private int messageID;
+    private Date date;
+    private HashMap<String, Date> visited;
     private final int t = 60;
 
-    Message(String clientID, String content) {
-        this.content = content;   
+    Message(String clientID, String message) {
+        nextMessage = null;
+        this.message = message;
         this.clientID = clientID;
         messageID = ++messageIDCounter;
         date = new Date();
-        nextMessage = null;
-        visited = new HashMap<String,Date>();
+        visited = new HashMap<String, Date>();
     }
 
     public Message getMessage(String clientID) {
         Date tempDate = new Date();
-        
-        if(!visited.containsKey(clientID)) {
+
+        if (!visited.containsKey(clientID)) {
             visited.put(clientID, tempDate);
             return this;
         } else {
-            if(((tempDate.getTime() - visited.get(clientID).getTime()) / 1000) >= t) {
-               visited.remove(clientID);
-               return this;
+            if (((tempDate.getTime() - visited.get(clientID).getTime()) / 1000) >= t) {
+                visited.remove(clientID);
+                return this;
             }
         }
-        
+
         return null;
     }
 
     public String getMessageContent() {
-        return content;
+        return message;
     }
 
     public String getClientID() {
@@ -50,7 +50,7 @@ public class Message {
     public int getMessageID() {
         return messageID;
     }
-    
+
     public Date getDate() {
         return date;
     }
@@ -65,7 +65,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return messageID + " " + clientID + ": " + content + " " + date;
+        return messageID + " " + clientID + ": " + message + " " + date;
     }
 
 }

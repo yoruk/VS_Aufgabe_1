@@ -1,28 +1,22 @@
-#!/bin/sh
+#!/usr/bin/sh
 
+# Vorhandene RMI Registry Instanzen beenden
 killall rmiregistry
 
-PATH=/mnt/fileserver/MyHome/TI_Labor/Linux/eclipse44/VS_Aufgabe_1
+# PATH-Variablen in das Projekt-Verzeichnis setzen
+PATH=/mnt/fileserver/MyHome/TI_Labor/Linux/eclipse44/VS_Aufgabe_1/src:/mnt/fileserver/MyHome/TI_Labor/Linux/eclipse44/VS_Aufgabe_1/bin:$PATH
 
-# 1. RMI Registry starten (Lokale Codebase deaktivieren):
-rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false &
+# 1. RMI Registry starten
+rmiregistry -J-Djava.rmi.server.codebase=file:///$PATH/ &
 
-# 2. Server starten:
+# 2. RMI Server starten (Parameter zum Setzen des Hosts: -Djava.rmi.server.hostname=localhost)
 java -cp $PATH/bin \
-     -Djava.rmi.server.useCodebaseOnly=false \
-     -Djava.rmi.server.codebase=file:$PATH/bin/ \
-     -Djava.security.policy=$PATH/rmi.policy \
+     -Djava.rmi.server.codebase=file:///$PATH \
+     -Djava.security.policy=$PATH/server.policy \
      rmi.MessageServiceImpl
 
-
-# Alternativ (Mit Host-Server Angabe):
-#java -cp D:\Dokumente\Eclipse\workspace\VS_Aufgabe_1\bin \
-#     -Djava.rmi.server.useCodebaseOnly=false \
-#     -Djava.rmi.server.codebase=file:/D:\Dokumente\Eclipse\workspace\VS_Aufgabe_1\bin\ \
-#     -Djava.rmi.server.hostname=localhost \
-#     -Djava.security.policy=D:\Dokumente\Eclipse\workspace\VS_Aufgabe_1\rmi.policy \
-#     rmi.MessageServiceImpl
-
-# 3. Client starten:
-# java -cp D:\Dokumente\Eclipse\workspace\VSP_01\bin \
-# rmi.MessageServiceClient
+# 3. Client starten (Parameter zum Setzen des Hosts und des Ports: localhost 1099)
+#java -cp $PATH/bin \
+#     -Djava.rmi.server.codebase=file:///$PATH \
+#     -Djava.security.policy=$PATH/client.policy \
+#     rmi.MessageServiceClient
