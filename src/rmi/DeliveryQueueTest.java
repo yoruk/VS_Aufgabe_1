@@ -8,7 +8,7 @@ public class DeliveryQueueTest {
         
 		System.out.println("Start von addMessage:");
         for(int i = 0; i < 11; i++) {
-        	Message message = new Message("test", String.valueOf(i));
+        	Message message = new Message("test", String.valueOf(i), 60);
         	queue.addMessage(message);
         	System.out.println(message);
         }

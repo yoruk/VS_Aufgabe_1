@@ -1,7 +1,1 @@
-grant codeBase "file:D:\Dokumente\Eclipse\workspace\VSP_01\bin" {
-    permission java.security.AllPermission;
-};
-
-grant codeBase "file:/home/ms/workspace_java_vs/VS_Aufgabe_1\bin" {
-    permission java.security.AllPermission;
-};
+grant { permission java.security.AllPermission; };

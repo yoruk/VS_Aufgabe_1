@@ -1,7 +1,9 @@
 package rmi;
 
+import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 
 public class Message {
 
@@ -10,14 +12,16 @@ public class Message {
     private String message;
     private String clientID;
     private int messageID;
+    private int ttl;
     private Date date;
+    private final DateFormat df = DateFormat.getTimeInstance(DateFormat.MEDIUM, Locale.GERMANY);
     private HashMap<String, Date> visited;
-    private final int t = 60;
 
-    Message(String clientID, String message) {
+    Message(String clientID, String message, int ttl) {
         nextMessage = null;
         this.message = message;
         this.clientID = clientID;
+        this.ttl = ttl;
         messageID = ++messageIDCounter;
         date = new Date();
         visited = new HashMap<String, Date>();
@@ -30,7 +34,7 @@ public class Message {
             visited.put(clientID, tempDate);
             return this;
         } else {
-            if (((tempDate.getTime() - visited.get(clientID).getTime()) / 1000) >= t) {
+            if (((tempDate.getTime() - visited.get(clientID).getTime()) / 1000) >= ttl) {
                 visited.remove(clientID);
                 return this;
             }
@@ -65,7 +69,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return messageID + " " + clientID + ": " + message + " " + date;
+        return "[" + messageID + "] " + clientID + ": " + message + " (" + new String(df.format(date)) + ")";
     }
 
 }
