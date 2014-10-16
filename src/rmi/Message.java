@@ -12,7 +12,7 @@ public class Message {
     private String message;
     private String clientID;
     private int messageID;
-    private int ttl;
+    private int ttl; // Message time
     private Date date;
     private final DateFormat df = DateFormat.getTimeInstance(DateFormat.MEDIUM, Locale.GERMANY);
     private HashMap<String, Date> visited;

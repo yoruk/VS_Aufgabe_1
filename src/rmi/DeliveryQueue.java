@@ -55,7 +55,7 @@ public class DeliveryQueue {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder("\n**********     MESSAGE QUEUE     **********\n");
         Message tempMessage = firstMessage;
 
         if (tempMessage != null) {
@@ -65,7 +65,12 @@ public class DeliveryQueue {
                 tempMessage = tempMessage.getNextMessage();
                 sb.append(tempMessage).append("\n");
             }
+        } else {
+        	sb.append("The message queue is empty!\n");
         }
+
+        sb.append("********************************************\n");
+
         return sb.toString();
     }
 }

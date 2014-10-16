@@ -59,6 +59,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
     private static JButton buttonStop;
     private static JButton buttonFindIp;
     private static JButton buttonStartRegistry;
+    private static JButton buttonShowQueue;
 
     // Constructor
     public MessageServiceServer() throws RemoteException {
@@ -118,7 +119,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         frame.setResizable(false);
 
         // Create top panel
-        JPanel panelTop = new JPanel(new GridLayout(5, 2));
+        JPanel panelTop = new JPanel(new GridLayout(6, 2));
         panelTop.setBorder(BorderFactory.createEtchedBorder(1));
         JLabel labelServerName = new JLabel("Server name:");
         labelServerName.setToolTipText("Name that should be provided to the RMI registry for this instance");
@@ -137,6 +138,8 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         buttonStop.setEnabled(false);
         buttonFindIp = new JButton("Find IP-addresses");
         buttonFindIp.setEnabled(false);
+        buttonShowQueue = new JButton("Show MessageQueue");
+        buttonShowQueue.setEnabled(false);
         panelTop.add(labelServerName);
         panelTop.add(textServerName);
         panelTop.add(labelQueueSize);
@@ -147,6 +150,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         panelTop.add(buttonFindIp);
         panelTop.add(buttonStart);
         panelTop.add(buttonStop);
+        panelTop.add(buttonShowQueue);
 
         // Create center panel
         JPanel panelCenter = new JPanel(new FlowLayout());
@@ -192,6 +196,13 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
             }
         });
 
+        buttonShowQueue.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showMessageQueue();
+            }
+        });
+
         // Add panels to the window and make it visible
         frame.getContentPane().add(panelTop, BorderLayout.NORTH);
         frame.getContentPane().add(panelCenter, BorderLayout.CENTER);
@@ -200,6 +211,11 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         frame.validate();
         frame.setVisible(true);
     } // createAndRunGUI
+
+    // Show content of the message queue
+    private static void showMessageQueue() {
+    	System.out.println(deliveryQueue);
+    }
 
     // Search for all possible IP-addresses for the current host and show them in a dialog after "Find IP-addresses" button was clicked
     private static void findIpAddr() {
@@ -308,6 +324,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         buttonStart.setEnabled(false);
         buttonFindIp.setEnabled(false);
         buttonStop.setEnabled(true);
+        buttonShowQueue.setEnabled(true);
         textServerName.setEnabled(false);
         textQueueSize.setEnabled(false);
         textTTL.setEnabled(false);
@@ -329,6 +346,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         buttonStart.setEnabled(true);
         buttonStop.setEnabled(false);
         buttonFindIp.setEnabled(true);
+        buttonShowQueue.setEnabled(false);
         textServerName.setEnabled(true);
         textQueueSize.setEnabled(true);
         textTTL.setEnabled(true);
