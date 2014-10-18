@@ -7,43 +7,53 @@ import java.util.Locale;
 
 public class Message {
 
-    private static int messageIDCounter = 0;
-    private Message nextMessage;
-    private String message;
-    private String clientID;
-    private int messageID;
-    private int ttl; // Message time
-    private Date date;
-    private final DateFormat df = DateFormat.getTimeInstance(DateFormat.MEDIUM, Locale.GERMANY);
-    private HashMap<String, Date> visited;
+    /* Class variables */
+    private final DateFormat df = DateFormat.getTimeInstance(DateFormat.MEDIUM, Locale.GERMANY); // Time formatter
+    private HashMap<String, Date> clientsRequestsList; // List with clients requests saved as a pair of client-ID and timestamp
+    private static int messageIDCounter = 1; // Static counter for messages
+    private Message nextMessage;             // Reference to next message
+    private String message;                  // Message content
+    private String clientID;                 // Client-ID
+    private int messageID;                   // Continuous message-ID
+    private int msgResendTime;               // Message-Resend-Time for all messages and clients
+    private Date date;                       // Date object for time measurements
 
-    Message(String clientID, String message, int ttl) {
-        nextMessage = null;
-        this.message = message;
+    /* Constructor */
+    Message(String clientID, String message, int msgResendTime) {
         this.clientID = clientID;
-        this.ttl = ttl;
+        this.message = message;
+        this.msgResendTime = msgResendTime;
+        nextMessage = null;
         messageID = ++messageIDCounter;
         date = new Date();
-        visited = new HashMap<String, Date>();
+        clientsRequestsList = new HashMap<String, Date>();
     }
 
-    public Message getMessage(String clientID) {
+    /* This method returns a message object only if the specified client doesn't request it already or the request is past the message-resend-time */
+    public Message getValidMessage(String clientID) {
         Date tempDate = new Date();
+        Message tempMessage = null;
 
-        if (!visited.containsKey(clientID)) {
-            visited.put(clientID, tempDate);
-            return this;
+        if (!clientsRequestsList.containsKey(clientID)) {
+            clientsRequestsList.put(clientID, tempDate); // Request from unknown client-ID: Put new client-ID and current request timestamp into HashMap
+            tempMessage = this;
         } else {
-            if (((tempDate.getTime() - visited.get(clientID).getTime()) / 1000) >= ttl) {
-                visited.remove(clientID);
-                return this;
+            if (((tempDate.getTime() - clientsRequestsList.get(clientID).getTime()) / 1000) >= msgResendTime) {
+                clientsRequestsList.remove(clientID);        // Request of client-ID is past the message-resend-time, so delete old entry and
+                clientsRequestsList.put(clientID, tempDate); // refresh HashMap with a new entry: Put same client-ID but new request timestamp into HashMap
+                tempMessage = this;
             }
         }
 
-        return null;
+        return tempMessage;
     }
 
-    public String getMessageContent() {
+    /* Getter and setter */
+    public Message getNextMessage() {
+        return nextMessage;
+    }
+
+    public String getMessage() {
         return message;
     }
 
@@ -55,12 +65,12 @@ public class Message {
         return messageID;
     }
 
-    public Date getDate() {
-        return date;
+    public int getMsgResendTime() {
+        return msgResendTime;
     }
 
-    public Message getNextMessage() {
-        return nextMessage;
+    public Date getDate() {
+        return date;
     }
 
     public void setNextMessage(Message nextMessage) {
@@ -69,7 +79,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return "[" + messageID + "] " + clientID + ": " + message + " (" + new String(df.format(date)) + ")";
-    }
+        return "[" + (messageID - 1) + "] " + clientID + ": " + message + " (" + new String(df.format(date)) + ")";
+    } /* toString */
 
 }

@@ -2,60 +2,62 @@ package rmi;
 
 public class DeliveryQueue {
 
-    private Message firstMessage;
-    private final int maxSize;
-    private int size;
+    /* Class variables */
+    private Message firstMessage; // Beginning of the FIFO queue
+    private final int maxSize;    // Maximum size of the FIFO queue
+    private int currentSize;      // Current queue size
 
+    /* Constructor */
     DeliveryQueue(int maxSize) {
         this.firstMessage = null;
         this.maxSize = maxSize;
-        this.size = 0;
+        this.currentSize = 0;
     }
 
+    /* This method adds a new message into the FIFO queue */
     public void addMessage(Message message) {
         Message tempMessage = firstMessage;
 
         if (firstMessage == null) {
-            firstMessage = message;
-            size++;
+            firstMessage = message; // Empty FIFO queue: Attach "message" to first position of the FIFO queue
+            currentSize++;
         } else {
             while (tempMessage.getNextMessage() != null) {
-                tempMessage = tempMessage.getNextMessage();
+                tempMessage = tempMessage.getNextMessage(); // FIFO queue not empty: Search for the last message
             }
 
-            tempMessage.setNextMessage(message);
+            tempMessage.setNextMessage(message); // Attach "message" to the last message in the FIFO queue
 
-            if (size == maxSize) {
-                firstMessage = firstMessage.getNextMessage();
+            if (currentSize == maxSize) {
+                firstMessage = firstMessage.getNextMessage(); // Maximum size of FIFO queue reached: Discard first message entry
             } else {
-                size++;
+                currentSize++;
             }
         }
-    }
+    } /* addMessage */
 
     public Message getMessage(String clientID) {
         Message tempMessage = firstMessage;
         Message tempMessage2;
 
         if (firstMessage != null) {
-
-            if ((tempMessage.getMessage(clientID)) != null) {
+            if ((tempMessage.getValidMessage(clientID)) != null) {
                 return tempMessage;
             }
 
             while ((tempMessage = tempMessage.getNextMessage()) != null) {
-
-                if ((tempMessage2 = tempMessage.getMessage(clientID)) != null) {
+                if ((tempMessage2 = tempMessage.getValidMessage(clientID)) != null) {
                     return tempMessage2;
                 }
             }
-        } // if
+        }
+
         return null;
-    }
+    } /* getMessage */
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("\n**********     MESSAGE QUEUE     **********\n");
+        StringBuilder sb = new StringBuilder("\n\n**********     MESSAGE QUEUE     **********\n");
         Message tempMessage = firstMessage;
 
         if (tempMessage != null) {
@@ -66,11 +68,12 @@ public class DeliveryQueue {
                 sb.append(tempMessage).append("\n");
             }
         } else {
-        	sb.append("The message queue is empty!\n");
+            sb.append("          The message queue is empty!          \n");
         }
 
-        sb.append("********************************************\n");
+        sb.append("***********************************************\n\n");
 
         return sb.toString();
-    }
+    } /* toString */
+
 }

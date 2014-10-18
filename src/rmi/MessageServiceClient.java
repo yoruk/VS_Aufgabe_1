@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -39,45 +41,42 @@ import javax.swing.border.LineBorder;
 
 public class MessageServiceClient {
 
-    // Class variables
-    private static final File logFile = new File("Client_Sent_Messages.txt");   // FileHandler fuer die Log-Datei der gesendeten Nachrichten
-    private static StringBuilder messagesReceived = new StringBuilder("");      // Log fuer empfangene Nachrichten
-    private static List<String> serverList = new ArrayList<String>();           // Liste aller Server, die in der RMI Registry gelistet sind
-    private static MessageService messageService;   // MessageService Objekt
-    private static Registry registry;               // Registry Objekt fuer RMI
-    private static String messageToSend;            // Zu sendender Text an den Server
-    private static String messageToRecv;            // Zu empfangender Text vom Server
-    private static String serverAddr;               // Adresse des Servers
-    private static String serverName;               // Name of the server in the remote RMI registry
-    private static String clientID;                 // Zu sendende Client-ID an den Server
-    private static int serverTimeout;               // Ausfallzeit s in Sekunden
-    private static JFrame frame;                    // Main programm window
-    private static JTextField textServerName;       // Name for the remote instance to seatch for in the remote RMI registry
-    private static JTextField textServerAddr;       // Eingabefeld fuer Servernamen
-    private static JTextField textClientID;         // Eingabefeld fuer Clientnamen
-    private static JTextField textServerTimeout;    // Eingabefeld fuer Clientnamen
-    private static JTextArea textOutputArea;        // Textfeld fuer empfangene Nachrichten
-    private static JTextArea textInputArea;         // Eingabebereich fuer die Nachrichten des Clients
-    private static JButton buttonConnect;           // Button fuer den Verbindungsaufbau zum Server
-    private static JButton buttonDisconnect;        // Button fuer den Verbindungsabbau vom Server
-    private static JButton buttonSend;              // Button zum Senden von Nachrichten zum Server
-    private static JButton buttonRecv;              // Button zum Empfangen von Nachrichten vom Server
+    /* Class variables */
+    private static final File logFile = new File("client_sent_msgs.txt"); // File handler for the logfile of all sent messages
+    private static StringBuilder stringBuffer = new StringBuilder();      // Buffer for received messages from the server
+    private static MessageService messageService; // MessageService object for remote connection to the RMI registry
+    private static Registry registry;             // RMI registry for the lookup of a server
+    private static String messageToSend;          // Message being send to the server
+    private static String serverAddr;             // Address of the server
+    private static String serverName;             // Name of the server in the connected RMI registry
+    private static String clientID;               // Name of the client
+    private static int serverTimeout;             // Time the client try to reconnect to the server and keep the connection if there are connectivity issues (in seconds)
+    private static boolean isResending;           // Boolean flag to check if the attempt to send a message to the server failed and has to be repeated
+    private static JTextField textServerAddr;     // Text field for server address
+    private static JTextField textServerName;     // Text field for server name in the remote RMI registry
+    private static JTextField textClientID;       // Text field for client name
+    private static JTextField textServerTimeout;  // Text field for server connection timeout
+    private static JTextArea textOutputArea;      // Text area for displaying received messages
+    private static JTextArea textInputArea;       // Text area for entering messages to be send
+    private static JButton buttonConnect;         // Button for connecting to the server
+    private static JButton buttonDisconnect;      // Button for disconnecting from the server
+    private static JButton buttonSend;            // Button for sending messages to the server
+    private static JButton buttonRecv;            // Button for receiving messages from the server
 
-    // Create GUI window
-    private static void createAndRunGUI() {
+    /* This method creates and shows the GUI window */
+    private static void createAndShowGUI() {
 
-        frame = new JFrame("MessageService Client");                    // Name des Fenstertitels
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);           // Aktion beim Druecken des Schliessen-Knopfs
-        frame.setIconImage(frame.getToolkit().getImage("icon.png"));    // App-Icon
-        frame.setMinimumSize(new Dimension(800, 600));                  // Groesse
-        frame.setResizable(false);                                      // Aendern der Fenstergroesse deaktivieren
+        JFrame frame = new JFrame("MessageService Client");          // Window name
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);        // Operation when "close" button is clicked
+        frame.setIconImage(frame.getToolkit().getImage("icon.png")); // Application icon
+        frame.setMinimumSize(new Dimension(800, 600));               // Window size
+        frame.setResizable(false);                                   // Window resizing
 
-        // Create top panel
+        // Create top panel components
         JPanel panelTop = new JPanel(new GridLayout(5, 2));
         panelTop.setBorder(BorderFactory.createEtchedBorder(1));
         JLabel labelServerAddr = new JLabel("Server address:");
         JLabel labelServerName = new JLabel("Server name:");
-        labelServerName.setToolTipText("Name of the instance that should be searched in the remote RMI registry");
         JLabel labelClientID = new JLabel("Client-ID:");
         JLabel labelServerTimeout = new JLabel("Server connection timeout:");
         textServerAddr = new JTextField("localhost");
@@ -98,7 +97,7 @@ public class MessageServiceClient {
         panelTop.add(buttonConnect);
         panelTop.add(buttonDisconnect);
 
-        // Create center panel
+        // Create center panel components
         JPanel panelCenter = new JPanel();
         panelCenter.setBorder(BorderFactory.createEtchedBorder(1));
         textOutputArea = new JTextArea(26, 76);
@@ -111,10 +110,11 @@ public class MessageServiceClient {
         scrollPaneCenter.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         panelCenter.add(scrollPaneCenter);
 
-        // Create bottom panel
+        // Create bottom panel components
         JPanel panelBottom = new JPanel();
         panelBottom.setBorder(BorderFactory.createEtchedBorder(1));
         textInputArea = new JTextArea(5, 62);
+        textInputArea.setBorder(new CompoundBorder(new LineBorder(Color.BLACK), new EmptyBorder(1, 3, 1, 1)));
         textInputArea.setEditable(true);
         textInputArea.setEnabled(false);
         JScrollPane scrollPaneBottom = new JScrollPane(textInputArea);
@@ -127,7 +127,6 @@ public class MessageServiceClient {
         panelBottom.add(scrollPaneBottom);
         panelBottom.add(buttonSend);
         panelBottom.add(buttonRecv);
-
 
         // Create ActionListener for the buttons as anonymous classes
         buttonConnect.addActionListener(new ActionListener() {
@@ -148,18 +147,35 @@ public class MessageServiceClient {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                send();
+                sendMessage();
             }
         });
 
         buttonRecv.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                receive();
+                receiveMessage();
             }
         });
 
-        // Add panels to the window and make it visible
+        // Create ActionListener for the text input area as anonymous class
+        textInputArea.addKeyListener(new KeyListener() {
+            @Override
+            public void keyPressed(KeyEvent e){
+                if(e.getKeyCode() == KeyEvent.VK_ENTER){
+                    e.consume(); // Consume ENTER key to prevent a newline in text input area
+                    buttonSend.doClick(); // Send messages with enter key
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) { } // Do nothing
+
+            @Override
+            public void keyTyped(KeyEvent e) { } // Do nothing
+        });
+
+        // Add panels to the frame and make it visible
         frame.getContentPane().add(panelTop, BorderLayout.NORTH);
         frame.getContentPane().add(panelCenter, BorderLayout.CENTER);
         frame.getContentPane().add(panelBottom, BorderLayout.SOUTH);
@@ -167,25 +183,26 @@ public class MessageServiceClient {
         frame.setLocationRelativeTo(null);
         frame.validate();
         frame.setVisible(true);
-    } // createAndRunGUI
+    } /* createAndShowGUI */
 
-    // Log messages to specified log-file
+    /* This method is saving a given string message to a logfile */
     private static void writeLog(String message) {
+        
         try (PrintWriter logWriter = new PrintWriter(new FileOutputStream(logFile, true))) {
             Date date = new Date();
             DateFormat df = DateFormat.getTimeInstance(DateFormat.MEDIUM, Locale.GERMANY);
             String formattedMessage = new String(df.format(date) + " | " + clientID + ": " + message + "\n");
             logWriter.append(formattedMessage);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Unable to write log-file \"" + logFile.getAbsolutePath() + "\"", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Unable to write log-file \"" + logFile.getAbsolutePath() + "\"!", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
-    } // writeLog
+    } /* writeLog */
 
-    // Connecto to server
+    /* This method establishes a connection to the specified RMI server */
     private static void connect() {
 
-        // Read content of text-fields into static variables
+        // Read content of text fields into static variables
         serverAddr = textServerAddr.getText();
         serverName = textServerName.getText();
         clientID = textClientID.getText();
@@ -196,41 +213,38 @@ public class MessageServiceClient {
             System.setSecurityManager(new SecurityManager());
         }
 
-        // Lookup remote RMI registry server for the specified name
+        // Lookup the server in the remote RMI registry by its name
         try {
             registry = LocateRegistry.getRegistry(serverAddr);
             messageService = (MessageService) registry.lookup(serverName);
-            JOptionPane.showMessageDialog(null, "Successfully connected to server \"" + serverAddr + "\"", "Information", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Successfully connected to server \"" + serverAddr + "\"!", "Information", JOptionPane.INFORMATION_MESSAGE);
+
+            // Set GUI components
+            textServerName.setEnabled(false);
+            textServerAddr.setEnabled(false);
+            textClientID.setEnabled(false);
+            textServerTimeout.setEnabled(false);
+            textInputArea.setEnabled(true);
+            buttonConnect.setEnabled(false);
+            buttonDisconnect.setEnabled(true);
+            buttonSend.setEnabled(true);
+            buttonRecv.setEnabled(true);
+            isResending = false;
+
         } catch (AccessException e) {
-            JOptionPane.showMessageDialog(null, "Unable to access server \"" + serverAddr + "\" in the RMI registry", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Unable to access server \"" + serverAddr + "\" in the RMI registry!", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
-            disconnect();
         } catch (NotBoundException e) {
-            JOptionPane.showMessageDialog(null, "Unable to find server \"" + serverAddr + "\" in the RMI registry", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Unable to find server \"" + serverAddr + "\" in the RMI registry!", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
-            disconnect();
         } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(null, "Unable to connect to RMI registry", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Unable to connect to the RMI registry!", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
-            disconnect();
         }
+    } /* connect */
 
-        // Set GUI elements
-        textServerName.setEnabled(false);
-        textServerAddr.setEnabled(false);
-        textClientID.setEnabled(false);
-        textServerTimeout.setEnabled(false);
-        textInputArea.setEnabled(true);
-        buttonConnect.setEnabled(false);
-        buttonDisconnect.setEnabled(true);
-        buttonSend.setEnabled(true);
-        buttonRecv.setEnabled(true);
-    } // connect
-
-    // Disconnect from server
+    /* This method "disconnects" the client from the server. In fact it resets the GUI components and logs, so the client can (re-)connect to a(-nother) server again */
     private static void disconnect() {
-
-        // Set GUI elements
         textServerName.setEnabled(true);
         textServerAddr.setEnabled(true);
         textClientID.setEnabled(true);
@@ -241,103 +255,134 @@ public class MessageServiceClient {
         buttonSend.setEnabled(false);
         buttonRecv.setEnabled(false);
         messageToSend = new String();
-        messageToRecv = new String();
-        messagesReceived = new StringBuilder();
+        stringBuffer = new StringBuilder();
         textInputArea.setText("");
         textOutputArea.setText("");
-    } // disconneect
+        isResending = false;
+    } /* disconneect */
 
-    //TODO keepConnection und testConnection finalisieren
-    // private static boolean isSent; // EVENTUELL FUER FEHLERSEMANTIK ALS ZAEHLVARIABLE FUER AT-LEAST-ONCE
-    // Return TRUE if connection is still available an the server is still listed in the RMI registry
+    /* This method tests the server connection by fetching a list of all servers registered to the RMI registry and compare it to the used "serverName" */
     private static boolean testConnection() {
 
-        // Clear server list before fetching a new one with servers bounded to the RMI registry
-        serverList.clear();
+        List<String> serverList = new ArrayList<String>();
 
         try {
-            Collections.addAll(serverList, registry.list());
+            Collections.addAll(serverList, registry.list()); // Fetch list of all servers registered to the RMI registry
         } catch (AccessException e) {
-            JOptionPane.showMessageDialog(null, "Unable to access RMI registry", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Unable to access the RMI registry to test the connection to the server!", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
             disconnect();
         } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(null, "Unable to connect to RMI registry", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Unable to connect to the RMI registry to test the connection to the server!", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
             disconnect();
         }
+
         return serverList.contains(serverName);
-    }
+    } /* testConnection*/
 
-    //TODO Eventuell muss diese Funktion per separatem Thread implementiert werden?!
-    // Try to keep connection for "serverTimeout" seconds before disconnect
-    private static void keepConnection() {
-        JOptionPane.showMessageDialog(null, "Server \"" + serverAddr + "\" is not reponding. Waiting for " + serverTimeout + " seconds before next attempt", "Information", JOptionPane.INFORMATION_MESSAGE);
-        try {
-            Thread.sleep(serverTimeout * 1000);
-        } catch (InterruptedException e) {
-            JOptionPane.showMessageDialog(null, "Unable to wait for " + serverTimeout + " seconds for the server \"" + serverAddr + "\" to respond", "Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-            disconnect();
-        }
+    /* This method waits and tries for "serverTimeout" seconds to reestablish the connection to the server and to resend a message for a second time, before disconnecting from the server */
+    private static void resendMessage() {
 
-        // Check if connection is available again, else disconnect from the server
+        JOptionPane.showMessageDialog(null, "First attempt to send the message to server \"" + serverAddr + "\" failed.\nClick OK to attempt to resend the message for " + serverTimeout + " seconds!", "Information", JOptionPane.INFORMATION_MESSAGE);
+
+        for(int i = 0; i < serverTimeout; i++) {
+            if(testConnection()) {
+                JOptionPane.showMessageDialog(null, "Reconnecting to server \"" + serverAddr + "\" was successful. Resending the message now!", "Information", JOptionPane.INFORMATION_MESSAGE);
+                sendMessage(); // Resend last message
+                return;
+            } else {
+                try {
+                    Thread.sleep(1000); // Attempt to reestablish the connection to the server every second of the "serverTimeout" time
+                } catch (InterruptedException e) {
+                    JOptionPane.showMessageDialog(null, "Waiting for server \"" + serverAddr + "\" was interrupted. Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                    disconnect();
+                }
+            }
+        } // Reached end of the "serverTimeout" time. Server ist still unreachable!
+
+        // Check for a last time if the server is still unreachable and else disconnect from the server
         if(!testConnection()) {
-            JOptionPane.showMessageDialog(null, "Server \"" + serverAddr + "\" is still not reponding since " + serverTimeout + " seconds. Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Reconnecting to server \"" + serverAddr + "\" has failed.\nUnable to resend the message! Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
             disconnect();
         }
-    } // keepConnection
+    } /* keepConnection */
 
-    // Send messages to server
-    private static void send() {
+    /* This method sends a message written in the text input area to the server */
+    private static void sendMessage() {
 
-        // Read content of text-fields into static variables
-        messageToSend = textInputArea.getText();
-        textInputArea.setText("");
+        // Read content of text fields into static variables
+        messageToSend = (isResending == false) ? textInputArea.getText() : messageToSend; // Use old value of messageToSend during resending process
+        textInputArea.setText(""); // Clear input text area
 
         // Try to send message, else try to keep the connection
         if(testConnection()) {
             try {
                 messageService.newMessage(clientID, messageToSend);
+                isResending = false;
             } catch (RemoteException e) {
-                JOptionPane.showMessageDialog(null, "Unable to send message to server \"" + serverAddr + "\"", "Error", JOptionPane.ERROR_MESSAGE);
+                if(isResending == true) {
+                    JOptionPane.showMessageDialog(null, "Second attempt to send the message to server \"" + serverAddr + "\" failed. Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
+                    disconnect();
+                } else {
+                    isResending = true; // First attempt to send the message failed because of a remote exception, try to resend the message
+                    resendMessage();
+                }
                 e.printStackTrace();
-                keepConnection();
             }
-            writeLog(messageToSend);
+
+            writeLog(messageToSend); // Write messageToSend into the local logfile
+
         } else {
-            keepConnection(); // Try to keep connection
+            if(isResending == true) {
+                JOptionPane.showMessageDialog(null, "Second attempt to send the message to server \"" + serverAddr + "\" failed. Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
+                disconnect();
+            } else {
+                isResending = true; // First attempt to send the message failed because of an unreachable server, try to resend the message
+                resendMessage();
+            }
         }
-    } // send
+    } /* sendMessage */
 
-    // Receive messages from server
-    private static void receive() {
+    /* This method receives all possible messages with a valid timestamp from the server */
+    private static void receiveMessage() {
 
-        // Try to receive message, else try to keep the connection
+        String tempMessage;
+
+        // Try to receive all messages, else try to keep the connection before disconnecting from the server
         if(testConnection()) {
-            try {
-                messageToRecv = messageService.nextMessage(clientID);
+            try {                
+
+                do {
+                    tempMessage = messageService.nextMessage(clientID);
+                    
+                    if(tempMessage != null) {
+                        stringBuffer.append(tempMessage + "\n"); // Append received messages to "stringBuffer"
+                    }                    
+                } while (tempMessage != null);
+
             } catch (RemoteException e) {
-                JOptionPane.showMessageDialog(null, "Unable to receive message from server \"" + serverAddr + "\"", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Unable to reach server \"" + serverAddr + "\" for new messages to receive!", "Error", JOptionPane.ERROR_MESSAGE);
                 e.printStackTrace();
             }
-            messagesReceived.append(messageToRecv).append("\n");
-            textOutputArea.setText(messagesReceived.toString());
-        } else {
-            keepConnection();
-        }
-    } // receive
 
-    // main
+            textOutputArea.setText(stringBuffer.toString());
+        } else {
+            JOptionPane.showMessageDialog(null, "Unable to receive messages from server \"" + serverAddr + "\"!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    } /* receiveMessage */
+
     public static void main(String[] args) {
 
         // Run GUI as an EventDispatching thread
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                createAndRunGUI();
+                createAndShowGUI();
             }
         });
-    } // main
+
+    }
 
 }
