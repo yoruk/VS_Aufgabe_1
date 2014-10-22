@@ -1,4 +1,4 @@
-package rmi;
+package common;
 
 import java.awt.BorderLayout;
 import java.awt.Color;

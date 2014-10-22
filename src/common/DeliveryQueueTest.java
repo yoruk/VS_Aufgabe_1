@@ -1,4 +1,4 @@
-package rmi;
+package common;
 
 public class DeliveryQueueTest {
 

@@ -1,4 +1,4 @@
-package rmi;
+package common;
 
 import java.text.DateFormat;
 import java.util.Date;
