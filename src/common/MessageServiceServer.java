@@ -12,7 +12,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -55,9 +54,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
     private static JTextField textMsgResendTime;  // Text field the message-repond-time
     private static JTextArea textOutputArea;      // Text area for displaying all messages and the delivery queue
     private static JButton buttonStartRegistry;   // Button to start the RMI registry
-    private static JButton buttonStart;           // Button to start the server
-    private static JButton buttonStop;            // Button to stop the server
-    private static JButton buttonFindIp;          // Button to find lokal IP-addresses
+    private static JButton buttonStartServer;     // Button to start the server
     private static JButton buttonShowQueue;       // Button to show the contents of the delivery queue
 
     /* Constructor */
@@ -99,10 +96,9 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         frame.setResizable(false);                                   // Window resizing                         
 
         // Create top panel
-        JPanel panelTop = new JPanel(new GridLayout(6, 2));
+        JPanel panelTop = new JPanel(new GridLayout(5, 2));
         panelTop.setBorder(BorderFactory.createEtchedBorder(1));
         JLabel labelServerName = new JLabel("Server name:");
-        labelServerName.setToolTipText("Name that should be provided to the RMI registry for this instance");
         textServerName = new JTextField("MessageService");
         textServerName.setEnabled(false);
         JLabel labelQueueSize = new JLabel("Queue-Size:");
@@ -112,15 +108,11 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         textMsgResendTime = new JTextField("60");
         textMsgResendTime.setEnabled(false);
         buttonStartRegistry = new JButton("Create RMI registry");
-        buttonStart = new JButton("Start Server");
-        buttonStart.setEnabled(false);
-        buttonStop = new JButton("Stop Server");
-        buttonStop.setEnabled(false);
-        buttonFindIp = new JButton("Find IP-addresses");
-        buttonFindIp.setEnabled(false);
+        buttonStartServer = new JButton("Start Server");
+        buttonStartServer.setEnabled(false);
+        JButton buttonFindIp = new JButton("Find IP-addresses");
         buttonShowQueue = new JButton("Show MessageQueue");
         buttonShowQueue.setEnabled(false);
-        JButton buttonExit = new JButton("Exit");
         panelTop.add(labelServerName);
         panelTop.add(textServerName);
         panelTop.add(labelQueueSize);
@@ -129,15 +121,13 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         panelTop.add(textMsgResendTime);
         panelTop.add(buttonStartRegistry);
         panelTop.add(buttonFindIp);
-        panelTop.add(buttonStart);
+        panelTop.add(buttonStartServer);
         panelTop.add(buttonShowQueue);
-        panelTop.add(buttonStop);
-        panelTop.add(buttonExit);
 
         // Create center panel
         JPanel panelCenter = new JPanel(new FlowLayout());
         panelCenter.setBorder(BorderFactory.createEtchedBorder(1));
-        textOutputArea = new JTextArea(30, 76);
+        textOutputArea = new JTextArea(32, 76);
         textOutputArea.setBorder(new CompoundBorder(new LineBorder(Color.BLACK), new EmptyBorder(1, 3, 1, 1)));
         textOutputArea.setEditable(false);
         textOutputArea.setForeground(Color.RED);
@@ -155,17 +145,10 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
             }
         });
 
-        buttonStart.addActionListener(new ActionListener() {
+        buttonStartServer.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 startServer();
-            }
-        });
-
-        buttonStop.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                stopServer();
             }
         });
 
@@ -180,13 +163,6 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
             @Override
             public void actionPerformed(ActionEvent e) {
                 showDeliveryQueue();
-            }
-        });
-
-        buttonExit.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);
             }
         });
 
@@ -252,6 +228,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
 
     /* This method is saving a given string message to a logfile */
     private static void writeLog(String clientID, String message, File logfile) {
+
         try (PrintWriter logWriter = new PrintWriter(new FileOutputStream(logfile, true))) {
             Date date = new Date();
             DateFormat df = DateFormat.getTimeInstance(DateFormat.MEDIUM, Locale.GERMANY);
@@ -273,9 +250,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
 
             // Set GUI components
             buttonStartRegistry.setEnabled(false);
-            buttonStart.setEnabled(true);
-            buttonStop.setEnabled(false);
-            buttonFindIp.setEnabled(true);
+            buttonStartServer.setEnabled(true);
             textServerName.setEnabled(true);
             textQueueSize.setEnabled(true);
             textMsgResendTime.setEnabled(true);
@@ -307,9 +282,7 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
             JOptionPane.showMessageDialog(null, "Server \"" + serverName + "\" successfully bound to the RMI registry", "Information", JOptionPane.INFORMATION_MESSAGE);
 
             // Set GUI components
-            buttonStart.setEnabled(false);
-            buttonFindIp.setEnabled(false);
-            buttonStop.setEnabled(true);
+            buttonStartServer.setEnabled(false);
             buttonShowQueue.setEnabled(true);
             textServerName.setEnabled(false);
             textQueueSize.setEnabled(false);
@@ -321,28 +294,6 @@ public class MessageServiceServer extends UnicastRemoteObject implements Message
         }
     } /* startServer */
 
-    /* This method stops the server and unbinds it in the local RMI registry */
-    private static void stopServer() {
-
-        try{
-            Naming.unbind(serverName);
-            JOptionPane.showMessageDialog(null, "Server \"" + serverName + "\" successfully stopped", "Information", JOptionPane.INFORMATION_MESSAGE);
-
-            // Set GUI components
-            buttonStartRegistry.setEnabled(false);
-            buttonStart.setEnabled(true);
-            buttonStop.setEnabled(false);
-            buttonFindIp.setEnabled(true);
-            buttonShowQueue.setEnabled(false);
-            textServerName.setEnabled(true);
-            textQueueSize.setEnabled(true);
-            textMsgResendTime.setEnabled(true);
-
-        } catch(Exception e) {
-            JOptionPane.showMessageDialog(null, "Unable to stop server \"" + serverName + "\"", "Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
-    } /* stopServer */
 
     public static void main(String[] args) {
 

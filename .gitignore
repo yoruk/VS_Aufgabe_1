@@ -2,3 +2,6 @@
 .project
 .settings/*
 bin/*
+client_sent_msgs.txt
+server_recv_msgs.txt
+server_sent_msgs.txt

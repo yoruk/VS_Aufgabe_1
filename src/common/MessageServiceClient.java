@@ -18,10 +18,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 import javax.swing.BorderFactory;
@@ -35,6 +32,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -52,6 +50,7 @@ public class MessageServiceClient {
     private static String clientID;               // Name of the client
     private static int serverTimeout;             // Time the client try to reconnect to the server and keep the connection if there are connectivity issues (in seconds)
     private static boolean isResending;           // Boolean flag to check if the attempt to send a message to the server failed and has to be repeated
+    private static JFrame frame;                  // Main window frame
     private static JTextField textServerAddr;     // Text field for server address
     private static JTextField textServerName;     // Text field for server name in the remote RMI registry
     private static JTextField textClientID;       // Text field for client name
@@ -59,14 +58,14 @@ public class MessageServiceClient {
     private static JTextArea textOutputArea;      // Text area for displaying received messages
     private static JTextArea textInputArea;       // Text area for entering messages to be send
     private static JButton buttonConnect;         // Button for connecting to the server
-    private static JButton buttonDisconnect;      // Button for disconnecting from the server
+    private static JButton buttonExit;            // Button for exiting the application
     private static JButton buttonSend;            // Button for sending messages to the server
     private static JButton buttonRecv;            // Button for receiving messages from the server
 
     /* This method creates and shows the GUI window */
     private static void createAndShowGUI() {
 
-        JFrame frame = new JFrame("MessageService Client");          // Window name
+        frame = new JFrame("MessageService Client");                 // Window name
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);        // Operation when "close" button is clicked
         frame.setIconImage(frame.getToolkit().getImage("icon.png")); // Application icon
         frame.setMinimumSize(new Dimension(800, 600));               // Window size
@@ -84,8 +83,8 @@ public class MessageServiceClient {
         textClientID = new JTextField("Nickname");
         textServerTimeout = new JTextField("5");
         buttonConnect = new JButton("Connect");
-        buttonDisconnect = new JButton("Disconnect");
-        buttonDisconnect.setEnabled(false);
+        buttonExit = new JButton("Exit");
+        buttonExit.setEnabled(false);
         panelTop.add(labelServerAddr);
         panelTop.add(textServerAddr);
         panelTop.add(labelServerName);
@@ -95,7 +94,7 @@ public class MessageServiceClient {
         panelTop.add(labelServerTimeout);
         panelTop.add(textServerTimeout);
         panelTop.add(buttonConnect);
-        panelTop.add(buttonDisconnect);
+        panelTop.add(buttonExit);
 
         // Create center panel components
         JPanel panelCenter = new JPanel();
@@ -136,10 +135,10 @@ public class MessageServiceClient {
             }
         });
 
-        buttonDisconnect.addActionListener(new ActionListener() {
+        buttonExit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                disconnect();
+                System.exit(0);
             }
         });
 
@@ -226,7 +225,7 @@ public class MessageServiceClient {
             textServerTimeout.setEnabled(false);
             textInputArea.setEnabled(true);
             buttonConnect.setEnabled(false);
-            buttonDisconnect.setEnabled(true);
+            buttonExit.setEnabled(true);
             buttonSend.setEnabled(true);
             buttonRecv.setEnabled(true);
             isResending = false;
@@ -243,15 +242,14 @@ public class MessageServiceClient {
         }
     } /* connect */
 
-    /* This method "disconnects" the client from the server. In fact it resets the GUI components and logs, so the client can (re-)connect to a(-nother) server again */
-    private static void disconnect() {
+    /* This method resets the GUI if the server is unreachable for the client, so the client can (re-)connect to a(-nother) server again */
+    private static void resetGUI() {
         textServerName.setEnabled(true);
         textServerAddr.setEnabled(true);
         textClientID.setEnabled(true);
         textServerTimeout.setEnabled(true);
         textInputArea.setEnabled(false);
         buttonConnect.setEnabled(true);
-        buttonDisconnect.setEnabled(false);
         buttonSend.setEnabled(false);
         buttonRecv.setEnabled(false);
         messageToSend = new String();
@@ -259,90 +257,85 @@ public class MessageServiceClient {
         textInputArea.setText("");
         textOutputArea.setText("");
         isResending = false;
-    } /* disconneect */
+        buttonSend.setText("Send");
+    } /* resetGUI */
 
-    /* This method tests the server connection by fetching a list of all servers registered to the RMI registry and compare it to the used "serverName" */
-    private static boolean testConnection() {
-
-        List<String> serverList = new ArrayList<String>();
-
-        try {
-            Collections.addAll(serverList, registry.list()); // Fetch list of all servers registered to the RMI registry
-        } catch (AccessException e) {
-            JOptionPane.showMessageDialog(null, "Unable to access the RMI registry to test the connection to the server!", "Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-            disconnect();
-        } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(null, "Unable to connect to the RMI registry to test the connection to the server!", "Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-            disconnect();
-        }
-
-        return serverList.contains(serverName);
-    } /* testConnection*/
-
-    /* This method waits and tries for "serverTimeout" seconds to reestablish the connection to the server and to resend a message for a second time, before disconnecting from the server */
-    private static void resendMessage() {
-
-        JOptionPane.showMessageDialog(null, "First attempt to send the message to server \"" + serverAddr + "\" failed.\nClick OK to attempt to resend the message for " + serverTimeout + " seconds!", "Information", JOptionPane.INFORMATION_MESSAGE);
-
-        for(int i = 0; i < serverTimeout; i++) {
-            if(testConnection()) {
-                JOptionPane.showMessageDialog(null, "Reconnecting to server \"" + serverAddr + "\" was successful. Resending the message now!", "Information", JOptionPane.INFORMATION_MESSAGE);
-                sendMessage(); // Resend last message
-                return;
-            } else {
-                try {
-                    Thread.sleep(1000); // Attempt to reestablish the connection to the server every second of the "serverTimeout" time
-                } catch (InterruptedException e) {
-                    JOptionPane.showMessageDialog(null, "Waiting for server \"" + serverAddr + "\" was interrupted. Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
-                    e.printStackTrace();
-                    disconnect();
-                }
-            }
-        } // Reached end of the "serverTimeout" time. Server ist still unreachable!
-
-        // Check for a last time if the server is still unreachable and else disconnect from the server
-        if(!testConnection()) {
-            JOptionPane.showMessageDialog(null, "Reconnecting to server \"" + serverAddr + "\" has failed.\nUnable to resend the message! Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
-            disconnect();
-        }
-    } /* keepConnection */
-
-    /* This method sends a message written in the text input area to the server */
+    /* This method sends a message written in the text input area to the server. When the sending process fails, the message will be resent */
     private static void sendMessage() {
 
         // Read content of text fields into static variables
-        messageToSend = (isResending == false) ? textInputArea.getText() : messageToSend; // Use old value of messageToSend during resending process
+        messageToSend = (isResending == false) ? textInputArea.getText() : messageToSend; // If not resending a message, use text from input area, else old value
         textInputArea.setText(""); // Clear input text area
 
-        // Try to send message, else try to keep the connection
-        if(testConnection()) {
+        // Try to send message
+        if(!isResending) {
             try {
-                messageService.newMessage(clientID, messageToSend);
-                isResending = false;
+                messageService.newMessage(clientID, messageToSend); // Send new message
+                writeLog(messageToSend);                            // Write messageToSend into the local logfile
             } catch (RemoteException e) {
-                if(isResending == true) {
-                    JOptionPane.showMessageDialog(null, "Second attempt to send the message to server \"" + serverAddr + "\" failed. Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
-                    disconnect();
-                } else {
-                    isResending = true; // First attempt to send the message failed because of a remote exception, try to resend the message
-                    resendMessage();
-                }
+                isResending = true; // Sending new message failed
+                sendMessage();      // hence resend it
                 e.printStackTrace();
             }
 
-            writeLog(messageToSend); // Write messageToSend into the local logfile
-
+        // Resending process - send button acts as a countdown for the serverTimeout value
         } else {
-            if(isResending == true) {
-                JOptionPane.showMessageDialog(null, "Second attempt to send the message to server \"" + serverAddr + "\" failed. Disconnecting now!", "Error", JOptionPane.ERROR_MESSAGE);
-                disconnect();
-            } else {
-                isResending = true; // First attempt to send the message failed because of an unreachable server, try to resend the message
-                resendMessage();
-            }
-        }
+
+            // Using a SwingWorker object for the background task of keep resending message for "serverTimeout" seconds
+            class ResendWorker extends SwingWorker<String,Integer> {
+                @Override
+                protected String doInBackground() throws Exception {
+                    
+                    buttonSend.setEnabled(false); // Deactivate the send button during resend process, as it acts as the serverTimeout countdown
+                    String answer = "Attempt to resend the message has failed!\nTry to reconnect or choose another server!";
+                    String countdown = Integer.toString(serverTimeout);
+                    int clickNo = JOptionPane.showConfirmDialog(frame, "Would you like to attempt to resend the message for " + serverTimeout + " seconds?", "Message Send Failure", JOptionPane.YES_NO_OPTION);
+
+                    // Try to resend the new message every second of serverTimeout, if the user agreed
+                    if(clickNo == 0) {
+                        for(int i = 0; i < serverTimeout; i++) {                            
+                            try {
+                                registry = LocateRegistry.getRegistry(serverAddr);               // Connect to the RMI registry
+                                messageService = (MessageService) registry.lookup(serverName);   // Lookup for the server
+                                messageService.newMessage(clientID, messageToSend);              // Resend the new message to server
+                                writeLog(messageToSend);                                         // Write messageToSend into the local logfile
+                                isResending = false;                                             // Resending of the new message was successfull at this point
+                                buttonSend.setText("Send");                                      // Restore name of send button
+                                buttonSend.setEnabled(true);                                     // Re-enable send button
+                                
+                                return answer = "Attempt to resend the message was successful!"; // Return dialog message
+                            } catch (Exception e) {
+                                try {
+                                    countdown = Integer.toString(serverTimeout - i); // Calculate countdown
+                                    buttonSend.setText(countdown);                   // Use send button as countdown display
+                                    Thread.sleep(1000); // Wait for 1000ms before retrying to resend the message to the server
+                                } catch (InterruptedException ie) {
+                                    JOptionPane.showMessageDialog(null, "Waiting for server \"" + serverAddr + "\" was interrupted!", "Error", JOptionPane.ERROR_MESSAGE);
+                                    ie.printStackTrace();
+                                }
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+
+                    resetGUI(); // Reset the GUI, so the user can manually reconnect or connect to another server
+                    return answer;
+                } // doInBackground
+
+                @Override
+                protected void done() {
+                    try {
+                        JOptionPane.showMessageDialog(frame, get()); // Get return value of doInBackground and show it
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            } // class ResendWorker
+            
+            new ResendWorker().execute(); // Execute resend task by SwingWorker
+        } // else
+
     } /* sendMessage */
 
     /* This method receives all possible messages with a valid timestamp from the server */
@@ -350,10 +343,7 @@ public class MessageServiceClient {
 
         String tempMessage;
 
-        // Try to receive all messages, else try to keep the connection before disconnecting from the server
-        if(testConnection()) {
-            try {                
-
+            try {
                 do {
                     tempMessage = messageService.nextMessage(clientID);
                     
@@ -363,14 +353,11 @@ public class MessageServiceClient {
                 } while (tempMessage != null);
 
             } catch (RemoteException e) {
-                JOptionPane.showMessageDialog(null, "Unable to reach server \"" + serverAddr + "\" for new messages to receive!", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Unable to receive new messages from server \"" + serverAddr + "\"!", "Error", JOptionPane.ERROR_MESSAGE);
                 e.printStackTrace();
             }
 
-            textOutputArea.setText(stringBuffer.toString());
-        } else {
-            JOptionPane.showMessageDialog(null, "Unable to receive messages from server \"" + serverAddr + "\"!", "Error", JOptionPane.ERROR_MESSAGE);
-        }
+            textOutputArea.setText(stringBuffer.toString()); // Show received messages in the text output area
     } /* receiveMessage */
 
     public static void main(String[] args) {
